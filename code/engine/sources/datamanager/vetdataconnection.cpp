@@ -185,3 +185,4 @@ int VetDataConnection::port()
 {
 	return mPort;
 }
+
