@@ -1,0 +1,81 @@
+#!/bin/sh
+
+current_directory=`dirname "$0"`
+current_directory=`cd $current_directory; pwd`
+
+code_directory="$current_directory"/../../code
+build_directory="$current_directory"/../../../build
+install_directory="$current_directory"/../../../install
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$install_directory":/home/visore/Project/External/Qt5/qt5/qtbase/lib/:/home/visore/Project/External/Qt5/qt5/qtsql/lib/
+
+cmake=false;
+build=false;
+run=false;
+package=false;
+valgrind=false;
+gdb=false;
+for i in $*
+do
+	if [ $i = "cmake" ]; then
+		cmake=true;
+	elif [ $i = "build" ]; then
+		build=true;
+	elif [ $i = "run" ]; then
+		run=true;
+	elif [ $i = "package" ]; then
+		package=true;
+	elif [ $i = "valgrind" ]; then
+		valgrind=true;
+	elif [ $i = "gdb" ]; then
+		gdb=true;
+	fi
+done
+
+if $cmake; then
+	rm -r "$install_directory"
+	mkdir "$install_directory"
+	rm -r "$build_directory"
+	mkdir "$build_directory"
+	cd "$build_directory"
+	if [ -f /etc/debian_version ];
+	then
+		cmake "$code_directory" -DCMAKE_INSTALL_PREFIX="$install_directory" -DCMAKE_BUILD_TYPE=Debug -DARCHITECTURE=64bit -DDISTRO=Debian
+	elif [ -f /etc/redhat_version ];
+	then
+		cmake "$code_directory" -DCMAKE_INSTALL_PREFIX="$install_directory" -DCMAKE_BUILD_TYPE=Debug -DARCHITECTURE=64bit -DDISTRO=Redhat
+	else
+		cmake "$code_directory" -DCMAKE_INSTALL_PREFIX="$install_directory" -DCMAKE_BUILD_TYPE=Debug -DARCHITECTURE=64bit
+	fi
+	make -j4 install -j4
+fi
+
+if $build; then
+	cd "$build_directory"
+	make -j4 install -j4
+fi
+
+if $package; then
+	cd "$build_directory"
+	make package
+fi
+
+if $gdb; then
+	cd $install_directory
+	cp ./*/*.so .
+	cp ./*/*/*.so .
+	cp /home/visore/Project/External/Qt5/qt5/qtbase/lib/*.so* .
+	cp /home/visore/Project/External/Qt5/qt5/qtmultimedia/lib/*.so* .
+	cp /home/visore/Project/External/Qt5/qt5/qtsvg/lib/*.so* .
+	LD_LIBRARY_PATH=/home/visore/Project/Visore/GitHub/install/usr/local/visore
+	export LD_LIBRARY_PATH
+	ulimit -c unlimited
+	./autovet
+	gdb visore core
+elif $run; then
+	cd $install_directory
+	./autovet
+elif $run; then
+	cd $install_directory
+	./autovet
+fi
